@@ -30,15 +30,11 @@ print("ROUGE-L F1:", scores['rougeL'].fmeasure)
 
 from bert_score import score
 
-# 参考答案列表
 references = ["This is a reference sentence for testing."]
-# 生成文本列表
 candidates = ["This is a candidate sentence for testing."]
 
-# 计算BERT Score
 P, R, F1 = score(candidates, references, lang="en")
 
-# 打印BERT Score
 print("BERT Score Precision:", P.mean().item())
 print("BERT Score Recall:", R.mean().item())
 print("BERT Score F1:", F1.mean().item())
