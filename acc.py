@@ -58,3 +58,69 @@ with torch.no_grad():
 
 cosine_similarity = torch.nn.functional.cosine_similarity(embeddings_ref, embeddings_cand)
 print("Cosine Similarity:", cosine_similarity.item())
+
+
+def calculate_auc(y_true, y_scores):
+    n = len(y_true)
+    if n <= 1:
+        return 0.0
+    sorted_indices = sorted(range(n), key=lambda i: y_scores[i], reverse=True)
+    sorted_true = [y_true[i] for i in sorted_indices]
+    auc = 0.0
+    num_positive = sum(sorted_true)
+    num_negative = n - num_positive
+    tpr = 0.0  # True Positive Rate
+    fpr = 0.0  # False Positive Rate
+    prev_fpr = 0.0
+    prev_tpr = 0.0
+    for i in range(n):
+        if sorted_true[i] == 1:
+            tpr += 1 / num_positive
+        else:
+            fpr += 1 / num_negative
+        auc += 0.5 * (fpr - prev_fpr) * (tpr + prev_tpr)
+        prev_fpr = fpr
+        prev_tpr = tpr
+    return auc
+
+y_true = [0, 0, 1, 1]
+y_scores = [0.1, 0.4, 0.35, 0.8]
+auc = calculate_auc(y_true, y_scores)
+print("AUC:", auc)
+
+
+def calculate_average_precision(y_true, y_scores):
+    n = len(y_true)
+    if n <= 0:
+        return 0.0
+
+    sorted_indices = sorted(range(n), key=lambda i: y_scores[i], reverse=True)
+    sorted_true = [y_true[i] for i in sorted_indices]
+
+    num_positive = sum(sorted_true)
+    if num_positive == 0:
+        return 0.0
+
+    precision_at_recall = [0.0] * n
+    true_positives = [0] * n
+
+    for i in range(n):
+        if sorted_true[i] == 1:
+            true_positives[i] = 1
+
+    cumulative_precision = [0.0] * n
+    cumulative_precision[0] = true_positives[0]
+
+    for i in range(1, n):
+        cumulative_precision[i] = cumulative_precision[i - 1] + true_positives[i]
+
+    for i in range(n):
+        precision_at_recall[i] = cumulative_precision[i] / (i + 1)
+
+    average_precision = sum(precision_at_recall[i] * true_positives[i] for i in range(n)) / num_positive
+    return average_precision
+
+y_true = [1, 0, 1, 0, 1]
+y_scores = [0.8, 0.2, 0.6, 0.4, 0.7]
+ap = calculate_average_precision(y_true, y_scores)
+print("mAP:", ap)
