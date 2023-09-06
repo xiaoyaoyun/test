@@ -2,6 +2,32 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+
+from torch.utils.data import DataLoader, TensorDataset
+
+X_continuous = torch.tensor([[1.0], [2.0], [3.0], [4.0]], dtype=torch.float32)
+X_categorical = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0]], dtype=torch.float32)
+y = torch.tensor([2, 4, 6, 8], dtype=torch.float32)
+
+dataset = TensorDataset(X_continuous, X_categorical, y)
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+
+class MyModel(nn.Module):
+    def __init__(self, num_continuous_features, num_categorical_features):
+        super(MyModel, self).__init__()
+        self.fc_continuous = nn.Linear(num_continuous_features, 1)
+        self.fc_categorical = nn.Linear(num_categorical_features, 1)
+        self.fc_combined = nn.Linear(2, 1)  # 合并连续和离散特征
+
+    def forward(self, x_continuous, x_categorical):
+        out_continuous = self.fc_continuous(x_continuous)
+        out_categorical = self.fc_categorical(x_categorical)
+        combined = torch.cat((out_continuous, out_categorical), dim=1)
+        output = self.fc_combined(combined)
+        return output
+model = MyModel(num_continuous_features=1, num_categorical_features=3)
+
+
 class SimpleNN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(SimpleNN, self).__init__()
