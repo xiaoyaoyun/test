@@ -42,21 +42,38 @@ class ContrastiveLoss(nn.Module):
                                       y * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2))
         return loss_contrastive
 
-# LLM
-'''
-    if labels is not None:
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
-            loss_fct = CrossEntropyLoss()
-            shift_logits = shift_logits.view(-1, self.config.vocab_size)
-            shift_labels = shift_labels.view(-1)
-            # Enable model parallelism
-            shift_labels = shift_labels.to(shift_logits.device)
-            loss = loss_fct(shift_logits, shift_labels)
-'''
 
+def calculate_iou(box1, box2):
+    """
+    参数：
+    box1：第一个矩形框，表示为 (x1, y1, x2, y2)，其中 (x1, y1) 为左上角坐标，(x2, y2) 为右下角坐标。
+    box2：第二个矩形框，表示为 (x1, y1, x2, y2)。
+    返回值：
+    交并比（IoU）值。
+    """
+    # 计算两个矩形框的交集部分的左上角和右下角坐标
+    x1_intersection = max(box1[0], box2[0])
+    y1_intersection = max(box1[1], box2[1])
+    x2_intersection = min(box1[2], box2[2])
+    y2_intersection = min(box1[3], box2[3])
+
+    intersection_area = max(0, x2_intersection - x1_intersection + 1) * max(0, y2_intersection - y1_intersection + 1)
+
+    # 计算两个矩形框的面积
+    area_box1 = (box1[2] - box1[0] + 1) * (box1[3] - box1[1] + 1)
+    area_box2 = (box2[2] - box2[0] + 1) * (box2[3] - box2[1] + 1)
+
+    union_area = area_box1 + area_box2 - intersection_area
+
+    iou = intersection_area / union_area
+
+    return iou
+
+# # 示例用法
+# box1 = (0, 0, 4, 4)
+# box2 = (2, 2, 6, 6)
+# iou = calculate_iou(box1, box2)
+# print("交并比（IoU）为:", iou)
 
 
 predicted = torch.tensor([0, 1, 1, 0], dtype=torch.float32)
@@ -80,5 +97,4 @@ print('loss: ', loss)
 
 grads = grad(pred, target_data)
 
-# 输出导数值
 print(grads)

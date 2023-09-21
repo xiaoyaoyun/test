@@ -89,3 +89,15 @@ with torch.no_grad():
     model.eval()
     predicted_output = model(test_input, None)  # 在测试阶段不需要目标数据，传入None
     print("Predicted Output:", predicted_output)
+
+'''
+	一：
+	Embedding层：词表大小乘以隐藏层 V * h。
+	位置编码：假设位置编码是冻结和计算的，只使用一个位置编码，固定不变的，维度为（s*h）, 参数数量为 s * h。
+	Multihead_attention：3*a*h*h (3: qkv)  (假设只有考虑encoder只有一个multihead_attention)
+	FFN: 假设2个Linear, 中间的维度为 l_dim：a*h*l_dim+l_dim*h
+	最终模型参数:
+	l * (3 * a * h*h + a*h*l_dim+l_dim*h )+ s * h + V * h
+	注： 如果多头注意力时隐藏层维度变为 h / a, 再concat（暂定保持维度为h,输入到linear），那么multihead_atten层参数量需要除以a, 线性第一层也需要
+
+'''
