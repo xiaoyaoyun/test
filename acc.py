@@ -124,3 +124,78 @@ y_true = [1, 0, 1, 0, 1]
 y_scores = [0.8, 0.2, 0.6, 0.4, 0.7]
 ap = calculate_average_precision(y_true, y_scores)
 print("mAP:", ap)
+
+
+import numpy as np
+
+def calculate_iou(box1, box2):
+    x1_1, y1_1, x2_1, y2_1 = box1
+    x1_2, y1_2, x2_2, y2_2 = box2
+    
+    x1_intersection = max(x1_1, x1_2)
+    y1_intersection = max(y1_1, y1_2)
+    x2_intersection = min(x2_1, x2_2)
+    y2_intersection = min(y2_1, y2_2)
+    intersection_area = max(0, x2_intersection - x1_intersection + 1) * max(0, y2_intersection - y1_intersection + 1)
+    
+    box1_area = (x2_1 - x1_1 + 1) * (y2_1 - y1_1 + 1)
+    box2_area = (x2_2 - x1_2 + 1) * (y2_2 - y1_2 + 1)
+    union_area = box1_area + box2_area - intersection_area
+    iou = intersection_area / union_area
+    
+    return iou
+
+def calculate_ap(precision, recall):
+    mrecall = np.concatenate(([0.], recall, [1.]))
+    mprecision = np.concatenate(([0.], precision, [0.]))
+    
+    for i in range(len(mprecision) - 2, -1, -1):
+        mprecision[i] = max(mprecision[i], mprecision[i + 1])
+    
+    indices = np.where(mrecall[1:] != mrecall[:-1])[0] + 1
+    average_precision = np.sum((mrecall[indices] - mrecall[indices - 1]) * mprecision[indices])
+    
+    return average_precision
+
+def calculate_map(ground_truth_boxes, predicted_boxes, iou_threshold=0.5):
+    predicted_boxes.sort(key=lambda x: x[4], reverse=True)
+    
+    num_ground_truth_boxes = len(ground_truth_boxes)
+    true_positives = np.zeros(len(predicted_boxes))
+    false_positives = np.zeros(len(predicted_boxes))
+    
+    for i, predicted_box in enumerate(predicted_boxes):
+        iou_max = -1
+        ground_truth_box_index = -1
+        
+        for j, ground_truth_box in enumerate(ground_truth_boxes):
+            iou = calculate_iou(predicted_box[:4], ground_truth_box)
+            if iou > iou_max:
+                iou_max = iou
+                ground_truth_box_index = j
+        
+        if iou_max >= iou_threshold and ground_truth_box_index >= 0:
+            if ground_truth_boxes[ground_truth_box_index][-1] == 0:
+                true_positives[i] = 1
+                ground_truth_boxes[ground_truth_box_index][-1] = 1  # 标记该真实边界框已被匹配
+            else:
+                false_positives[i] = 1
+        else:
+            false_positives[i] = 1
+    
+    cumulative_true_positives = np.cumsum(true_positives)
+    cumulative_false_positives = np.cumsum(false_positives)
+    recall = cumulative_true_positives / num_ground_truth_boxes
+    precision = cumulative_true_positives / (cumulative_true_positives + cumulative_false_positives)
+    
+    ap = calculate_ap(precision, recall)
+    
+    return ap
+
+# 示例用法
+ground_truth_boxes = [(50, 50, 150, 150, 1), (200, 200, 300, 300, 1)]
+predicted_boxes = [(40, 40, 160, 160, 0.9), (200, 200, 300, 300, 0.8)]
+iou_threshold = 0.5
+
+mAP = calculate_map(ground_truth_boxes, predicted_boxes, iou_threshold)
+print("mAP:", mAP)
